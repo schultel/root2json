@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # Simple converter to get ROOT histograms into JSON format used in PaPA/PISA
 #

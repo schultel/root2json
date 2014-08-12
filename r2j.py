@@ -1,7 +1,9 @@
+#!/usr/bin/env python
 #
 # Simple converter to get ROOT histograms into JSON format used in PaPA/PISA
 #
 # Sebastian Boeser <sboeser@physik.uni-bonn.de>
+# Lukas Schulte <lschulte@physik.uni-bonn.de>
 #
 
 import sys
@@ -38,9 +40,9 @@ def convert2Dhisto(hist):
             dmap[ebin-1,czbin-1]=hist.GetBinContent(ebin,czbin)
 
     #Compile in dict
-    ret_dict = {'ebins': ebins.tolist(),
-                'czbins': czbins.tolist(),
-                'map' : dmap.tolist() }
+    ret_dict = {'ebins': ebins,
+                'czbins': czbins,
+                'map' : dmap }
     return ret_dict
 
 
@@ -79,10 +81,10 @@ def convert3Dhisto(hist):
             for ebin in range(1,len(ebins)):
                 dmap[czb_re-1,czb_tr-1,ebin-1]=hist.GetBinContent(czb_re,czb_tr,ebin)
 
-    ret_dict = {'ebins': ebins.tolist(),
-                'czbins_true': czbins_true.tolist(),
-                'czbins_reco': czbins_reco.tolist(),
-                'map' : dmap.tolist() }
+    ret_dict = {'ebins': ebins,
+                'czbins_true': czbins_true,
+                'czbins_reco': czbins_reco,
+                'map' : dmap }
     return ret_dict
 
 def convertTFile(rfile):
@@ -135,6 +137,15 @@ def root2json(infile):
     return convertTFile(rfile)
 
 
+def numpy2list(d):
+    for key in d.keys():
+        if isinstance(d[key], dict):
+            numpy2list(d[key])
+        elif isinstance(d[key], numpy.ndarray):
+            d[key] = d[key].tolist()
+        else:
+            continue
+
 try:
     import simplejson as json
 except ImportError:
@@ -163,7 +174,11 @@ if __name__ == '__main__':
     logging.basicConfig(format='[%(levelname)8s] %(message)s')
     logging.root.setLevel(levels[min(2,args.verbose)])
 
+    #Convert all histos to ndarrays
     histlist = root2json(args.infile[0])
+    
+    #Convert all ndarrays to lists for json dumping
+    numpy2list(histlist)
  
     #Write out stuff in JSON
     with open(args.outfile,'w') as ofile:
