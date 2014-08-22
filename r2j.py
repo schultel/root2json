@@ -13,6 +13,32 @@ import logging
 from argparse import ArgumentParser
 
 
+def convert1Dhisto(hist):
+
+    #Get the bin edges
+    ebins = []
+    axis = hist.GetXaxis()
+    ebins += [axis.GetXmin()]
+    for ibin in range(1,axis.GetNbins()+1):
+        ebins += [axis.GetBinUpEdge(ibin)]
+
+    #Convert to numpy arrays, energy in log10
+    ebins = numpy.power(10,numpy.array(ebins))
+
+    logging.debug('Found %u bins in energy from %.2f to %.2f'%
+                   (len(ebins)-1, ebins[0], ebins[-1]))
+
+    #Get the actual map
+    dmap = numpy.zeros((len(ebins)-1))
+    for ebin in range(1,len(ebins)):
+        dmap[ebin-1]=hist.GetBinContent(ebin)
+
+    #Compile in dict
+    ret_dict = {'ebins': ebins,
+                'entries': dmap }
+    return ret_dict
+
+
 def convert2Dhisto(hist):
 
     #Get the bin edges
@@ -94,8 +120,15 @@ def convertTFile(rfile):
     #Loop over the keys
     for key in rfile.GetListOfKeys():
         
-        #only use TH2
-        if key.GetClassName().startswith('TH2'):
+        if key.GetClassName().startswith('TH1'):
+
+            #Compile in dict and append
+            logging.info('Converting 1D histrogram %s'%key.GetName())
+            hist = rfile.Get(key.GetName())
+            
+            histlist[key.GetName()] = convert1Dhisto(hist)
+
+        elif key.GetClassName().startswith('TH2'):
 
             #Compile in dict and append
             logging.info('Converting 2D histrogram %s'%key.GetName())
